@@ -1,0 +1,19 @@
+{
+  "name": "iit-jammu-post-office-automation-system",
+  "version": "1.0.0",
+  "description": "IIT jammu post office autoamtion system for automating mail",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prashasthraju/IIT-JAMMU-POST-OFFICE-AUTOMATION-SYSTEM.git"
+  },
+  "author": "Prashasth",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/prashasthraju/IIT-JAMMU-POST-OFFICE-AUTOMATION-SYSTEM/issues"
+  },
+  "homepage": "https://github.com/prashasthraju/IIT-JAMMU-POST-OFFICE-AUTOMATION-SYSTEM#readme"
+}
