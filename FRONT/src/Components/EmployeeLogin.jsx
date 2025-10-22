@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useLogin } from "../hooks/useLogin";
 
 function EmployeeLogin() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+  const { handleLogin, loading, error } = useLogin();
 
-  const handleSubmit = (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
-    login("employee");
-    navigate("/employee/dashboard");
+    const username = e.target.employeeId.value; // your hook expects 'username'
+    const password = e.target.password.value;
+    handleLogin(username, password);
   };
 
   return (
@@ -22,41 +22,56 @@ function EmployeeLogin() {
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Employee Login
         </h2>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+        <form onSubmit={onSubmit} className="flex flex-col gap-6">
           <div>
-            <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="employeeId"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Employee ID
             </label>
             <input
               id="employeeId"
+              name="employeeId"
               type="text"
               placeholder="Enter your Employee ID"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
             />
           </div>
+
           <div>
-            <label htmlFor="password"className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Password
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               placeholder="Enter your password"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
             />
           </div>
+
           <button
             type="submit"
+            disabled={loading}
             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
+
+          {error && <p className="text-red-600 text-center">{error}</p>}
         </form>
-        
+
         <div className="text-center mt-6">
           <button
-            onClick={() => navigate(-1)} // Goes back one page in history
+            onClick={() => window.history.back()}
             className="text-sm text-gray-600 hover:text-indigo-600 hover:underline"
           >
             Back to role selection

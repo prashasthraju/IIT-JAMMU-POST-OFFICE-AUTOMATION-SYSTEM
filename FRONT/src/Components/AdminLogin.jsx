@@ -1,68 +1,66 @@
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useLogin } from "../hooks/useLogin";
 
 function AdminLogin() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+  const { handleLogin, loading, error } = useLogin();
 
-  const handleSubmit = (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
-    // TODO: verify credentials with backend
-    login("admin");
-    navigate("/admin/dashboard");
+    const username = e.target.username.value;
+    const password = e.target.password.value;
+    handleLogin(username, password);
   };
 
   return (
     <div className="relative flex flex-col items-center justify-center h-screen bg-gray-50 overflow-hidden">
-      {/* Background Blobs */}
+      {/* Backgrounds */}
       <div className="absolute w-[40rem] h-[40rem] bg-red-100 rounded-full -top-40 -left-60 filter blur-3xl opacity-50"></div>
       <div className="absolute w-[30rem] h-[30rem] bg-indigo-100 rounded-full -bottom-20 -right-20 filter blur-3xl opacity-60"></div>
 
-      {/* Glassmorphism Card */}
+      {/* Card */}
       <div className="relative z-10 p-10 bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200 w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Admin Login
         </h2>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+        <form onSubmit={onSubmit} className="flex flex-col gap-6">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
               Username
             </label>
             <input
               id="username"
+              name="username"
               type="text"
               placeholder="Enter your username"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              required
             />
           </div>
+
           <div>
-            <label htmlFor="password"className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               placeholder="Enter your password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              required
             />
           </div>
+
           <button
             type="submit"
-            className="w-full px-4 py-3 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+            disabled={loading}
+            className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300 disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
+
+          {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
         </form>
-        
-        <div className="text-center mt-6">
-          <button
-            onClick={() => navigate(-1)} // Goes back one page in history
-            className="text-sm text-gray-600 hover:text-indigo-600 hover:underline"
-          >
-            Back to role selection
-          </button>
-        </div>
       </div>
     </div>
   );
