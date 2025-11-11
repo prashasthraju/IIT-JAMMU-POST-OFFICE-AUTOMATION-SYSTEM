@@ -5,9 +5,9 @@ function AdminLogin() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    const username = e.target.username.value;
+    const username = e.target.username.value.trim();
     const password = e.target.password.value;
-    handleLogin(username, password);
+    handleLogin(username, password, "admin"); // Pass userType as "admin"
   };
 
   return (

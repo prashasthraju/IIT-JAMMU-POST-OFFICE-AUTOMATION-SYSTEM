@@ -47,6 +47,7 @@ CREATE TABLE Person (
   DeptID INT,
   BuildingId INT,
   RoomNumber VARCHAR(10),
+  PasswordHash VARCHAR(255),
   FOREIGN KEY (DeptID) REFERENCES Department(DeptID),
   FOREIGN KEY (BuildingId) REFERENCES Building(BuildingId)
 ); 
@@ -153,12 +154,13 @@ select * from Department;
 
 
 -- (FIXED) Inserts now only use BuildingId, no redundant name
-INSERT INTO Person (Name, Role, Email, ContactNumber, DeptID, BuildingId, RoomNumber) VALUES
-('Manogna', 'Student', '2023uma0222@iitjammu.ac.in', '7051025654', 1, 1, '4019'),
-('Bob Verma', 'Faculty', '2020uce0102@iitjammu.ac.in', '9000000002', 2, 2, '2021'),
-('Charlie Singh', 'Student', '2021uME0103@iitjammu.ac.in', '9000000003', 3, 3, '3032'),
-('Diana Kaur', 'Staff', '2019uCE0104@iitjammu.ac.in', '9000000004', 4, 1, '4043'),
-('Ethan Gupta', 'Student', '2024umt0105@iitjammu.ac.in', '9000000005', 5, 5, '2032');
+-- (ADDED) PasswordHash column for login authentication
+INSERT INTO Person (Name, Role, Email, ContactNumber, DeptID, BuildingId, RoomNumber, PasswordHash) VALUES
+('Manogna', 'Student', '2023uma0222@iitjammu.ac.in', '7051025654', 1, 1, '4019', 'hash1'),
+('Bob Verma', 'Faculty', '2020uce0102@iitjammu.ac.in', '9000000002', 2, 2, '2021', 'hash2'),
+('Charlie Singh', 'Student', '2021uME0103@iitjammu.ac.in', '9000000003', 3, 3, '3032', 'hash3'),
+('Diana Kaur', 'Staff', '2019uCE0104@iitjammu.ac.in', '9000000004', 4, 1, '4043', 'hash4'),
+('Ethan Gupta', 'Student', '2024umt0105@iitjammu.ac.in', '9000000005', 5, 5, '2032', 'hash5');
 select * from Person;
 
 

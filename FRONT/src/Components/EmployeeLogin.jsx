@@ -6,9 +6,9 @@ function EmployeeLogin() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    const username = e.target.employeeId.value; // your hook expects 'username'
+    const username = e.target.employeeId.value.trim(); // LoginID from Employee table
     const password = e.target.password.value;
-    handleLogin(username, password);
+    handleLogin(username, password, "employee"); // Pass userType as "employee"
   };
 
   return (
