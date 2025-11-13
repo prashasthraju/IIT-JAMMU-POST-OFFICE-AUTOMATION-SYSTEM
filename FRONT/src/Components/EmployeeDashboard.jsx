@@ -9,6 +9,7 @@ function EmployeeDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [profile, setProfile] = useState({});
   const [assignedParcels, setAssignedParcels] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -24,16 +25,19 @@ function EmployeeDashboard() {
     async function fetchData() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const [pRes, parcelsRes] = await Promise.all([
+        const [pRes, parcelsRes, eventsRes] = await Promise.all([
           fetch(`${apiUrl}/api/employee/profile/${user.id}`),
           fetch(`${apiUrl}/api/employee/parcels/assigned/${user.id}`),
+          fetch(`${apiUrl}/api/employee/parcels/recent-events/${user.id}`),
         ]);
         
         const p = await pRes.json();
         const parcelsData = await parcelsRes.json();
+        const eventsData = await eventsRes.json();
         
         setProfile(p);
         setAssignedParcels(Array.isArray(parcelsData) ? parcelsData : []);
+        setRecentEvents(Array.isArray(eventsData) ? eventsData : []);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -61,9 +65,14 @@ function EmployeeDashboard() {
 
       if (res.ok) {
         // Refresh assigned parcels
-        const parcelsRes = await fetch(`${apiUrl}/api/employee/parcels/assigned/${user.id}`);
+        const [parcelsRes, eventsRes] = await Promise.all([
+          fetch(`${apiUrl}/api/employee/parcels/assigned/${user.id}`),
+          fetch(`${apiUrl}/api/employee/parcels/recent-events/${user.id}`),
+        ]);
         const parcelsData = await parcelsRes.json();
+        const eventsData = await eventsRes.json();
         setAssignedParcels(Array.isArray(parcelsData) ? parcelsData : []);
+        setRecentEvents(Array.isArray(eventsData) ? eventsData : []);
       } else {
         alert("Failed to update status");
       }
@@ -120,8 +129,15 @@ function EmployeeDashboard() {
                   <div className="text-lg font-semibold text-gray-800">{profile?.ContactNumber || "N/A"}</div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-500">Post Office ID</label>
-                  <div className="text-lg font-semibold text-gray-800">{profile?.PostOfficeID || "N/A"}</div>
+                  <label className="text-sm font-medium text-gray-500">Post Office</label>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {profile?.PostOfficeName
+                      ? `${profile.PostOfficeName} (${profile.PostOfficeID || "N/A"})`
+                      : profile?.PostOfficeID || "N/A"}
+                  </div>
+                  {profile?.PostOfficeLocation && (
+                    <p className="text-sm text-gray-500">{profile.PostOfficeLocation}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -165,6 +181,14 @@ function EmployeeDashboard() {
                           </div>
                           <div className="text-sm text-gray-600 space-y-1 mb-3">
                             <p><span className="font-medium">Type:</span> {p.Type} | <span className="font-medium">Mode:</span> {p.Mode}</p>
+                            {p.ReceiverName && (
+                              <p>
+                                <span className="font-medium">Recipient:</span> {p.ReceiverName}
+                                {p.ReceiverEmail && (
+                                  <span className="text-xs text-gray-500 ml-2">{p.ReceiverEmail}</span>
+                                )}
+                              </p>
+                            )}
                             {p.SenderName && (
                               <p><span className="font-medium">From:</span> {p.SenderName} ({p.SenderAddress})</p>
                             )}
@@ -196,8 +220,9 @@ function EmployeeDashboard() {
           </div>
         );
 
-      default: // dashboard
+      default: {
         const pendingCount = assignedParcels.filter(p => p.CurrentStatus === 'Pending').length;
+        const waitingCount = assignedParcels.filter(p => p.CurrentStatus === 'Waiting').length;
         const inTransitCount = assignedParcels.filter(p => p.CurrentStatus === 'In Transit').length;
         const deliveredCount = assignedParcels.filter(p => p.CurrentStatus === 'Delivered').length;
 
@@ -210,7 +235,7 @@ function EmployeeDashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
                 <div className="flex items-center justify-between">
                   <div>
@@ -229,7 +254,25 @@ function EmployeeDashboard() {
                   <div className="text-4xl">⏳</div>
                 </div>
               </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm font-medium">Waiting</p>
+                    <p className="text-3xl font-bold text-gray-800 mt-2">{waitingCount}</p>
+                  </div>
+                  <div className="text-4xl">🕒</div>
+                </div>
+              </div>
               <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm font-medium">In Transit</p>
+                    <p className="text-3xl font-bold text-gray-800 mt-2">{inTransitCount}</p>
+                  </div>
+                  <div className="text-4xl">🚚</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-500 text-sm font-medium">Delivered</p>
@@ -257,6 +300,7 @@ function EmployeeDashboard() {
                         p.CurrentStatus === 'Delivered' ? 'bg-green-100 text-green-800' :
                         p.CurrentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
                         p.CurrentStatus === 'In Transit' ? 'bg-blue-100 text-blue-800' :
+                        p.CurrentStatus === 'Waiting' ? 'bg-orange-100 text-orange-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {p.CurrentStatus}
@@ -266,8 +310,36 @@ function EmployeeDashboard() {
                 </div>
               )}
             </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
+              {recentEvents.length === 0 ? (
+                <p className="text-gray-500">No recent updates logged</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentEvents.slice(0, 10).map((event) => (
+                    <div key={event.EventID} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{event.BarcodeNo}</p>
+                        <p className="text-sm text-gray-600">
+                          {event.EventType} {event.Location ? `• ${event.Location}` : ""}
+                        </p>
+                        {event.Remarks && (
+                          <p className="text-xs text-gray-500 mt-1">{event.Remarks}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(event.Timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
+      }
       case "addPackage":
         const onCreate = async (e) => {
           e.preventDefault();

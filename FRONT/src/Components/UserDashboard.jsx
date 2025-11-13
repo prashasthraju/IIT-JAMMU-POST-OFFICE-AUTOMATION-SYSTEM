@@ -37,6 +37,10 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState({});
   const [inTransit, setInTransit] = useState([]);
   const [history, setHistory] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [deliveryRecords, setDeliveryRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,19 +52,31 @@ export default function UserDashboard() {
     async function fetchData() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const [pRes, tRes, hRes] = await Promise.all([
+        const [pRes, tRes, hRes, upcomingRes, notificationsRes, eventsRes, deliveryRes] = await Promise.all([
           fetch(`${apiUrl}/api/user/profile/${user.id}`),
           fetch(`${apiUrl}/api/user/parcels/in-transit/${user.id}`),
           fetch(`${apiUrl}/api/user/parcels/history/${user.id}`),
+          fetch(`${apiUrl}/api/user/parcels/upcoming/${user.id}`),
+          fetch(`${apiUrl}/api/user/notifications/${user.id}`),
+          fetch(`${apiUrl}/api/user/parcels/recent-events/${user.id}`),
+          fetch(`${apiUrl}/api/user/delivery-records/${user.id}`),
         ]);
         
         const p = await pRes.json();
         const t = await tRes.json();
         const h = await hRes.json();
+        const upcomingData = await upcomingRes.json();
+        const notificationsData = await notificationsRes.json();
+        const eventsData = await eventsRes.json();
+        const deliveryData = await deliveryRes.json();
         
         setProfile(p);
         setInTransit(Array.isArray(t) ? t : []);
         setHistory(Array.isArray(h) ? h : []);
+        setUpcoming(Array.isArray(upcomingData) ? upcomingData : []);
+        setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
+        setRecentEvents(Array.isArray(eventsData) ? eventsData : []);
+        setDeliveryRecords(Array.isArray(deliveryData) ? deliveryData : []);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -119,10 +135,12 @@ export default function UserDashboard() {
                   <div className="text-lg font-semibold text-gray-800">{profile?.RoomNumber || "N/A"}</div>
                 </div>
                 <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-500">Department</label>
+                  <div className="text-lg font-semibold text-gray-800">{profile?.DeptName || "N/A"}</div>
+                </div>
+                <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-500">Building</label>
-                  <div className="text-lg font-semibold text-gray-800">
-                    {profile?.BuildingId ? `Building ${profile.BuildingId}` : "N/A"}
-                  </div>
+                  <div className="text-lg font-semibold text-gray-800">{profile?.BuildingName || "N/A"}</div>
                 </div>
               </div>
             </div>
@@ -220,10 +238,72 @@ export default function UserDashboard() {
                 </div>
               )}
             </div>
+            
+            {/* Recent Tracking */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <span className="mr-3">🛰️</span>
+                Recent Tracking Events
+              </h2>
+              {recentEvents.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🛰️</div>
+                  <p className="text-gray-500 text-lg">No tracking events recorded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentEvents.slice(0, 10).map((event) => (
+                    <div key={event.EventID} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{event.BarcodeNo}</p>
+                        <p className="text-sm text-gray-600">
+                          {event.EventType} {event.Location ? `• ${event.Location}` : ""}
+                        </p>
+                        {event.Remarks && <p className="text-xs text-gray-500 mt-1">{event.Remarks}</p>}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(event.Timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Delivery Records */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <span className="mr-3">📄</span>
+                Delivery Records
+              </h2>
+              {deliveryRecords.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📄</div>
+                  <p className="text-gray-500 text-lg">No delivery records available</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {deliveryRecords.slice(0, 10).map((record) => (
+                    <div key={record.DeliveryID} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{record.BarcodeNo}</p>
+                        <p className="text-sm text-gray-600">Status: {record.DeliveryStatus}</p>
+                        {record.Remarks && <p className="text-xs text-gray-500 mt-1">{record.Remarks}</p>}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(record.DeliveryTime).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
 
-      default: // dashboard
+      default: { // dashboard
+        const deliveredCount = history.filter(h => h.CurrentStatus === 'Delivered').length;
+        const unreadNotifications = notifications.filter(n => n.Status !== 'Read').length;
         return (
           <div className="space-y-6">
             {/* Welcome Card */}
@@ -233,7 +313,7 @@ export default function UserDashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
                 <div className="flex items-center justify-between">
                   <div>
@@ -256,13 +336,112 @@ export default function UserDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-500 text-sm font-medium">Delivered</p>
-                    <p className="text-3xl font-bold text-gray-800 mt-2">
-                      {history.filter(h => h.CurrentStatus === 'Delivered').length}
-                    </p>
+                    <p className="text-3xl font-bold text-gray-800 mt-2">{deliveredCount}</p>
                   </div>
                   <div className="text-4xl">✅</div>
                 </div>
               </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm font-medium">Notifications</p>
+                    <p className="text-3xl font-bold text-gray-800 mt-2">{notifications.length}</p>
+                  </div>
+                  <div className="text-4xl">🔔</div>
+                </div>
+                <p className="mt-3 text-sm text-gray-500">
+                  {unreadNotifications > 0 ? `${unreadNotifications} unread` : "All caught up"}
+                </p>
+              </div>
+            </div>
+
+            {/* Upcoming Deliveries */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Deliveries</h2>
+              {upcoming.length === 0 ? (
+                <p className="text-gray-500">No upcoming deliveries scheduled</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcoming.slice(0, 5).map((item) => (
+                    <div key={item.MailID} className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{item.BarcodeNo}</p>
+                        <p className="text-sm text-gray-600">{item.Type}</p>
+                      </div>
+                      <div className="text-right">
+                        {item.ExpectedDeliveryDate && (
+                          <p className="text-sm text-gray-700 font-semibold">
+                            {new Date(item.ExpectedDeliveryDate).toLocaleDateString()}
+                          </p>
+                        )}
+                        <span className={`inline-flex px-3 py-1 mt-1 rounded-full text-xs font-semibold ${
+                          item.CurrentStatus === 'In Transit' ? 'bg-blue-100 text-blue-800' :
+                          item.CurrentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-indigo-100 text-indigo-800'
+                        }`}>
+                          {item.CurrentStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Latest Updates */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Latest Tracking Updates</h2>
+              {recentEvents.length === 0 ? (
+                <p className="text-gray-500">No recent tracking updates</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentEvents.slice(0, 6).map((event) => (
+                    <div key={event.EventID} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{event.BarcodeNo}</p>
+                        <p className="text-sm text-gray-600">
+                          {event.EventType} {event.Location ? `• ${event.Location}` : ""}
+                        </p>
+                        {event.Remarks && (
+                          <p className="text-xs text-gray-500 mt-1">{event.Remarks}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(event.Timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Notifications</h2>
+              {notifications.length === 0 ? (
+                <p className="text-gray-500">No notifications yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.slice(0, 6).map((notif) => (
+                    <div key={notif.NotificationID} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800">{notif.BarcodeNo || "General Update"}</p>
+                        <p className="text-sm text-gray-600">{notif.Message}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="block text-xs text-gray-500">
+                          {new Date(notif.SentTime).toLocaleString()}
+                        </span>
+                        <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-semibold ${
+                          notif.Status === 'Read' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {notif.Status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recent Parcels */}
@@ -292,6 +471,7 @@ export default function UserDashboard() {
             </div>
           </div>
         );
+      }
     }
   };
 

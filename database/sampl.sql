@@ -204,3 +204,5 @@ INSERT INTO Notification (MailID, PersonID, Message, SentTime, Status) VALUES
 (5, 1, 'Your returned parcel has been delivered', NOW(), 'Sent');
 -- (FIXED) Corrected typo
 select * from Notification;
+use iitjammu1;
+select * from Person
