@@ -131,11 +131,17 @@ export function useLogin() {
       }
 
       if (data && data.success) {
-        // Persist in context and localStorage via login()
-        login(data);
+        // Normalize role based on the requested userType to align with frontend routing
+        let normalizedRole = String(data.role || "").toLowerCase();
+        if (userType === "employee") normalizedRole = "employee";
+        else if (userType === "admin") normalizedRole = "admin";
+        else if (userType === "user") normalizedRole = "user";
+
+        // Persist in context
+        login({ ...data, role: normalizedRole });
 
         // navigate based on returned role (ensure lowercase)
-        const role = String(data.role || "").toLowerCase();
+        const role = normalizedRole;
         if (role === "admin") navigate("/admin/dashboard");
         else if (role === "employee") navigate("/employee/dashboard");
         else navigate("/user/dashboard");

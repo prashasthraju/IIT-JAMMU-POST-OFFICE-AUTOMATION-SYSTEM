@@ -97,9 +97,13 @@ function UserLogin() {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center h-screen bg-gray-50 overflow-hidden">
-      <div className="absolute w-[40rem] h-[40rem] bg-green-100 rounded-full -top-40 -left-60 filter blur-3xl opacity-50"></div>
-      <div className="absolute w-[30rem] h-[30rem] bg-indigo-100 rounded-full -bottom-20 -right-20 filter blur-3xl opacity-60"></div>
+    <div
+      className="relative flex flex-col items-center justify-center h-screen bg-gray-50 overflow-hidden bg-cover bg-center"
+      style={{ backgroundImage: "url('/iit-jammu-mockup-iit-jammu.jpg')" }}
+    >
+      <div className="absolute inset-0 bg-white/60"></div>
+      <div className="absolute w-[40rem] h-[40rem] bg-green-100 rounded-full -top-40 -left-60 filter blur-3xl opacity-40"></div>
+      <div className="absolute w-[30rem] h-[30rem] bg-indigo-100 rounded-full -bottom-20 -right-20 filter blur-3xl opacity-50"></div>
 
       <div className="relative z-10 p-10 bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200 w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">User Login</h2>
@@ -135,6 +139,9 @@ function UserLogin() {
           <button onClick={() => window.history.back()} className="text-sm text-gray-600 hover:text-indigo-600 hover:underline">
             Back to role selection
           </button>
+          <div className="mt-3 text-sm">
+            <a href="/signup/user" className="text-green-700 hover:underline">New here? Create an account</a>
+          </div>
         </div>
       </div>
     </div>

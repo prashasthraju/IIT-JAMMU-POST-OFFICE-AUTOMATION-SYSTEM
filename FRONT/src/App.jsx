@@ -70,6 +70,7 @@ import UserLogin from "./Components/UserLogin";
 import AdminDashboard from "./Components/AdminDashboard";
 import EmployeeDashboard from "./Components/EmployeeDashboard";
 import UserDashboard from "./Components/UserDashboard";
+import UserSignup from "./Components/UserSignup";
 import { useAuth } from "./context/AuthContext";
 
 function ProtectedRoute({ children, allowedRole }) {
@@ -95,6 +96,7 @@ function App() {
         <Route path="/login/admin" element={<AdminLogin />} />
         <Route path="/login/employee" element={<EmployeeLogin />} />
         <Route path="/login/user" element={<UserLogin />} />
+        <Route path="/signup/user" element={<UserSignup />} />
 
         <Route
           path="/admin/dashboard"

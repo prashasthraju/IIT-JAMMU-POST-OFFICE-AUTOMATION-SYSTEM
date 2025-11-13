@@ -96,56 +96,120 @@ app.get("/", (req, res) => {
 //   }
 // });
 // --- LOGIN ROUTE --- //
-app.post("/login", async (req, res) => {
+// import express from "express";
+ // ✅ use your existing connection pool
+
+const router = express.Router();
+
+router.post("/login", async (req, res) => {
   const { username, password, userType } = req.body;
 
-  if (!username || !password || !userType)
+  if (!username || !password || !userType) {
     return res.status(400).json({ success: false, message: "Missing fields" });
+  }
 
   try {
-    // ========== ADMIN / EMPLOYEE LOGIN ==========
-    if (userType === "admin" || userType === "employee") {
+    // ============================================================
+    // 1️⃣ ADMIN LOGIN
+    // ============================================================
+    if (userType === "admin") {
       const [rows] = await pool.query(
-        "SELECT EmployeeID AS id, Name, Role, LoginID AS username, PasswordHash, ContactNumber, PostOfficeID FROM Employee WHERE LoginID = ?",
+        `SELECT 
+            EmployeeID AS id, 
+            Name, 
+            Role, 
+            LoginID AS username, 
+            PasswordHash, 
+            ContactNumber, 
+            PostOfficeID, 
+            HasAccess
+         FROM Employee 
+         WHERE LoginID = ? AND Role = 'Admin' AND HasAccess = TRUE`,
         [username]
       );
 
       if (rows.length === 0)
-        return res.status(401).json({ success: false, message: "Invalid username" });
+        return res.status(401).json({ success: false, message: "Invalid admin credentials" });
 
-      const emp = rows[0];
-      if (emp.PasswordHash !== password)
+      const admin = rows[0];
+      const isPasswordValid = password === admin.PasswordHash; // 🔹 direct comparison
+
+      if (!isPasswordValid)
         return res.status(401).json({ success: false, message: "Invalid password" });
-
-      // Role mapping: Head Officer and Manager are admins, others are employees
-      const role =
-        emp.Role === "Head Officer" || emp.Role === "Manager" ? "admin" : "employee";
 
       return res.json({
         success: true,
-        role,
+        role: "admin",
+        id: admin.id,
+        name: admin.Name,
+        username: admin.username,
+        contactNumber: admin.ContactNumber,
+        postOfficeID: admin.PostOfficeID,
+      });
+    }
+
+    // ============================================================
+    // 2️⃣ EMPLOYEE LOGIN (non-admin)
+    // ============================================================
+    else if (userType === "employee") {
+      const [rows] = await pool.query(
+        `SELECT 
+            EmployeeID AS id, 
+            Name, 
+            Role, 
+            LoginID AS username, 
+            PasswordHash, 
+            ContactNumber, 
+            PostOfficeID, 
+            HasAccess
+         FROM Employee 
+         WHERE LoginID = ? AND HasAccess = TRUE AND Role <> 'Admin'`,
+        [username]
+      );
+
+      if (rows.length === 0)
+        return res.status(401).json({ success: false, message: "Invalid employee credentials" });
+
+      const emp = rows[0];
+      const isPasswordValid = password === emp.PasswordHash;
+
+      if (!isPasswordValid)
+        return res.status(401).json({ success: false, message: "Invalid password" });
+
+      return res.json({
+        success: true,
+        role: emp.Role,
         id: emp.id,
         name: emp.Name,
         username: emp.username,
-        employeeRole: emp.Role,
         contactNumber: emp.ContactNumber,
         postOfficeID: emp.PostOfficeID,
       });
     }
 
-    // ========== USER LOGIN ==========
+    // ============================================================
+    // 3️⃣ USER LOGIN (Person table)
+    // ============================================================
     else if (userType === "user") {
       const [rows] = await pool.query(
-        "SELECT PersonID AS id, Name, Role, Email AS username, PasswordHash, ContactNumber, DeptID, BuildingId, RoomNumber FROM Person WHERE Email = ?",
+        `SELECT 
+            PersonID AS id, 
+            Name, 
+            Email AS username, 
+            PasswordHash, 
+            ContactNumber
+         FROM Person 
+         WHERE Email = ?`,
         [username]
       );
 
       if (rows.length === 0)
-        return res.status(401).json({ success: false, message: "Invalid email" });
+        return res.status(401).json({ success: false, message: "Invalid user credentials" });
 
       const person = rows[0];
-      // Handle case where PasswordHash might be NULL (for existing records)
-      if (!person.PasswordHash || person.PasswordHash !== password)
+      const isPasswordValid = password === person.PasswordHash;
+
+      if (!isPasswordValid)
         return res.status(401).json({ success: false, message: "Invalid password" });
 
       return res.json({
@@ -155,19 +219,203 @@ app.post("/login", async (req, res) => {
         name: person.Name,
         email: person.username,
         contactNumber: person.ContactNumber,
-        roleType: person.Role,
       });
     }
 
-    // ========== INVALID TYPE ==========
+    // ============================================================
+    // 4️⃣ INVALID USERTYPE
+    // ============================================================
     else {
       return res.status(400).json({ success: false, message: "Invalid user type" });
     }
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).send("Server error");
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
+// mount auth router on root
+app.use("/", router);
+
+// import bcrypt from "bcrypt";  // make sure to install bcrypt
+// // npm install bcrypt
+
+// app.post("/login", async (req, res) => {
+//   const { username, password, userType } = req.body;
+
+//   if (!username || !password || !userType) {
+//     return res.status(400).json({ success: false, message: "Missing fields" });
+//   }
+
+//   try {
+//     // ============================================================
+//     // 1️⃣ ADMIN LOGIN
+//     // ============================================================
+//     if (userType === "admin") {
+//       const [rows] = await pool.query(
+//         `SELECT 
+//             EmployeeID AS id, 
+//             Name, 
+//             Role, 
+//             LoginID AS username, 
+//             PasswordHash, 
+//             ContactNumber, 
+//             PostOfficeID, 
+//             HasAccess
+//          FROM Employee 
+//          WHERE LoginID = ? AND Role = 'Admin' AND HasAccess = TRUE`,
+//         [username]
+//       );
+
+//       if (rows.length === 0) {
+//         return res.status(401).json({ success: false, message: "Invalid admin credentials" });
+//       }
+
+//       const admin = rows[0];
+
+//       // compare password securely
+//       const isPasswordValid = await bcrypt.compare(password, admin.PasswordHash);
+
+//       if (!isPasswordValid) {
+//         return res.status(401).json({ success: false, message: "Invalid password" });
+//       }
+
+//       return res.json({
+//         success: true,
+//         role: "admin",
+//         id: admin.id,
+//         name: admin.Name,
+//         username: admin.username,
+//         contactNumber: admin.ContactNumber,
+//         postOfficeID: admin.PostOfficeID,
+//       });
+//     }
+
+//     // ============================================================
+//     // 2️⃣ EMPLOYEE LOGIN (non-admin)
+//     // ============================================================
+//     else if (userType === "employee") {
+//       const [rows] = await pool.query(
+//         `SELECT 
+//             EmployeeID AS id, 
+//             Name, 
+//             Role, 
+//             LoginID AS username, 
+//             PasswordHash, 
+//             ContactNumber, 
+//             PostOfficeID, 
+//             HasAccess
+//          FROM Employee 
+//          WHERE LoginID = ? AND HasAccess = TRUE AND Role <> 'Admin'`,
+//         [username]
+//       );
+
+//       if (rows.length === 0) {
+//         return res.status(401).json({ success: false, message: "Invalid employee credentials" });
+//       }
+
+//       const emp = rows[0];
+//       const isPasswordValid = await bcrypt.compare(password, emp.PasswordHash);
+
+//       if (!isPasswordValid) {
+//         return res.status(401).json({ success: false, message: "Invalid password" });
+//       }
+
+//       return res.json({
+//         success: true,
+//         role: emp.Role,
+//         id: emp.id,
+//         name: emp.Name,
+//         username: emp.username,
+//         contactNumber: emp.ContactNumber,
+//         postOfficeID: emp.PostOfficeID,
+//       });
+//     }
+
+//     // ============================================================
+//     // 3️⃣ INVALID USERTYPE
+//     // ============================================================
+//     else {
+//       return res.status(400).json({ success: false, message: "Invalid user type" });
+//     }
+//   } catch (err) {
+//     console.error("Login error:", err);
+//     return res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
+
+// else if (userType === "user") {
+//   const [rows] = await pool.query(
+//     "SELECT PersonID AS id, Name, Email AS username, PasswordHash, ContactNumber FROM Person WHERE Email = ?",
+//     [username]
+//   );
+
+//   // Check if the email exists
+//   if (rows.length === 0) {
+//     return res
+//       .status(401)
+//       .json({ success: false, message: "Invalid user credentials" });
+//   }
+
+//   const person = rows[0];
+
+//   // ⚠️ Recommended: use bcrypt for secure password comparison
+//   // If you're storing plain hashes like "hash1", compare directly (not recommended)
+//   const isPasswordValid = person.PasswordHash === password;
+
+//   // If using bcrypt, replace above with:
+//   // const isPasswordValid = await bcrypt.compare(password, person.PasswordHash);
+
+//   if (!isPasswordValid) {
+//     return res
+//       .status(401)
+//       .json({ success: false, message: "Invalid password" });
+//   }
+
+//   // Successful login response
+//   return res.json({
+//     success: true,
+//     role: "user",
+//     id: person.id,
+//     name: person.Name,
+//     email: person.username,
+//     contactNumber: person.ContactNumber,
+//   });
+// }
+
+//     // // ========== USER LOGIN (User table) ==========
+//     // else if (userType === "user") {
+//     //   const [rows] = await pool.query(
+//     //     "SELECT UserID AS id, Name, Email AS username, PasswordHash, ContactNumber FROM person WHERE Email = ?",
+//     //     [username]
+//     //   );
+
+//     //   if (rows.length === 0)
+//     //     return res.status(401).json({ success: false, message: "Invalid user credentials" });
+
+//     //   const person = rows[0];
+//     //   if (!person.PasswordHash || person.PasswordHash !== password)
+//     //     return res.status(401).json({ success: false, message: "Invalid password" });
+
+//     //   return res.json({
+//     //     success: true,
+//     //     role: "user",
+//     //     id: person.id,
+//     //     name: person.Name,
+//     //     email: person.username,
+//     //     contactNumber: person.ContactNumber,
+//     //   });
+//     // }
+
+//     // ========== INVALID TYPE ==========
+//     else {
+//       return res.status(400).json({ success: false, message: "Invalid user type" });
+//     }
+//   } catch (err) {
+//     console.error("Login error:", err);
+//     res.status(500).send("Server error");
+//   }
+// });
 
 
 // 🔹 Integrated Dashboard Routes

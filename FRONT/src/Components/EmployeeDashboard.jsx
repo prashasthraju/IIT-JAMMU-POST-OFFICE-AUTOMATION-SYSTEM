@@ -11,6 +11,9 @@ function EmployeeDashboard() {
   const [assignedParcels, setAssignedParcels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createSuccess, setCreateSuccess] = useState("");
 
   useEffect(() => {
     if (!user || !user.id) {
@@ -262,6 +265,92 @@ function EmployeeDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        );
+      case "addPackage":
+        const onCreate = async (e) => {
+          e.preventDefault();
+          setCreateError("");
+          setCreateSuccess("");
+          setCreating(true);
+          const form = e.target;
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+          const payload = {
+            barcodeNo: form.barcodeNo.value.trim(),
+            type: form.type.value.trim(),
+            mode: form.mode.value,
+            senderName: form.senderName.value.trim() || null,
+            senderAddress: form.senderAddress.value.trim() || null,
+            receiverEmail: form.receiverEmail.value.trim() || null,
+            expectedDeliveryDate: form.expectedDeliveryDate.value || null,
+            handledBy: user.id,
+          };
+          try {
+            const res = await fetch(`${apiUrl}/api/employee/parcels/create`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+              const msg = await res.json().catch(() => ({}));
+              throw new Error(msg?.error || "Failed to create package");
+            }
+            setCreateSuccess("Package created successfully.");
+            form.reset();
+          } catch (err) {
+            setCreateError(err.message || "Something went wrong");
+          } finally {
+            setCreating(false);
+          }
+        };
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span className="mr-2">➕</span> Add New Package
+              </h2>
+              <form onSubmit={onCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Barcode No</label>
+                  <input name="barcodeNo" type="text" required className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Unique barcode" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                  <input name="type" type="text" required className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Letter / Parcel / Document" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mode</label>
+                  <select name="mode" required className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="Incoming">Incoming</option>
+                    <option value="Outgoing">Outgoing</option>
+                    <option value="Internal">Internal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Receiver Email</label>
+                  <input name="receiverEmail" type="email" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Optional (for internal deliveries)" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sender Name</label>
+                  <input name="senderName" type="text" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Optional" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sender Address</label>
+                  <input name="senderAddress" type="text" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Optional" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Expected Delivery Date</label>
+                  <input name="expectedDeliveryDate" type="datetime-local" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="md:col-span-2">
+                  <button type="submit" disabled={creating} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    {creating ? "Creating..." : "Create Package"}
+                  </button>
+                </div>
+              </form>
+              {createError && <p className="text-red-600 mt-4">{createError}</p>}
+              {createSuccess && <p className="text-green-700 mt-4">{createSuccess}</p>}
             </div>
           </div>
         );

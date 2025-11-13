@@ -22,6 +22,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         { id: "dashboard", label: "Dashboard", icon: "📊" },
         { id: "profile", label: "My Profile", icon: "👤" },
         { id: "assigned", label: "Assigned Parcels", icon: "📋" },
+        { id: "addPackage", label: "Add Package", icon: "➕" },
       ];
     } else if (user?.role === "admin") {
       return [
