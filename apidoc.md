@@ -1,5 +1,4 @@
 
-````markdown
 # 📮 IIT Jammu Post Office System — API Documentation
 
 This document describes all backend API endpoints for the IIT Jammu Post Office Management System.
@@ -32,7 +31,6 @@ Unified login: **admin**, **employee**, **user**
   "password": "string",
   "userType": "admin | employee | user"
 }
-````
 
 ---
 
