@@ -114,7 +114,7 @@ INSERT INTO Employee (Name, Role, ContactNumber, PostOfficeID, LoginID, Password
 -- ============================================================
 -- 5️⃣ PERSON
 -- ============================================================
-CREATE TABLE Person (
+CREATE TABLE Person ( 
   PersonID INT PRIMARY KEY AUTO_INCREMENT,
   Name VARCHAR(100) NOT NULL,
   Role VARCHAR(20) NOT NULL,
