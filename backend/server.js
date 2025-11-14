@@ -418,10 +418,13 @@ app.use("/", router);
 // });
 
 
-// 🔹 Integrated Dashboard Routes
+// FIRST: API routes
 app.use("/api/user", userRoutes);
 app.use("/api/employee", employeeRoutes);
 app.use("/api/admin", adminRoutes);
+
+// THEN: login route
+app.use("/", router);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>

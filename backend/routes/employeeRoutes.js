@@ -343,186 +343,369 @@
 // });
 
 // export default router;
+
 import express from "express";
+
 import pool from "../db.js";
+
 // Make sure this path is correct
-// import { notifyPackageEvent } from "../services/notificationService.js"; 
+
+// import { notifyPackageEvent } from "../services/notificationService.js";
+
 const router = express.Router();
 
+
+
 // --- MOCK notifyPackageEvent (if service isn't built yet) ---
+
 // If you don't have this service, uncomment the mock function below
+
 /*
+
 const notifyPackageEvent = async (event) => {
+
   console.log(`[Notification MOCK]: Event ${event.eventType} for MailID ${event.mailId}`);
+
   return Promise.resolve();
+
 };
+
 */
+
 // -----------------------------------------------------------
 
 
+
+
+
 // Get employee profile
+
 router.get("/profile/:id", async (req, res) => {
+
   console.log(`[GET /api/employee/profile/:id] ID: ${req.params.id}`);
+
   try {
+
     const [rows] = await pool.query(
-      `SELECT 
+
+      `SELECT
+
           e.*,
+
           po.Name AS PostOfficeName,
+
           po.Location AS PostOfficeLocation
+
         FROM Employee e
+
         LEFT JOIN PostOffice po ON e.PostOfficeID = po.PostOfficeID
+
         WHERE e.EmployeeID = ?`,
+
       [req.params.id]
+
     );
+
     res.json(rows[0] || {});
+
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
+
+
 
 // Parcels assigned to employee
+
 router.get("/parcels/assigned/:id", async (req, res) => {
+
   console.log(`[GET /api/employee/parcels/assigned/:id] ID: ${req.params.id}`);
+
   try {
+
     const [rows] = await pool.query(
-      `SELECT 
+
+      `SELECT
+
           m.*,
+
           p.Name AS ReceiverName,
+
           p.Email AS ReceiverEmail
+
         FROM MailItem m
+
         LEFT JOIN Person p ON m.ReceiverID = p.PersonID
+
         WHERE m.HandledBy = ?
+
           AND m.CurrentStatus IN ('Pending','In Transit','Waiting')
+
         ORDER BY m.DateReceived DESC`,
+
       [req.params.id]
+
     );
+
     res.json(rows);
+
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
+
+
 
 // Update parcel status
+
 router.post("/parcels/update-status", async (req, res) => {
+
   const { mailId, newStatus, empId } = req.body;
+
   console.log(`[POST /api/employee/parcels/update-status] MailID: ${mailId}, Status: ${newStatus}`);
+
   try {
+
     await pool.query(
+
       "UPDATE MailItem SET CurrentStatus = ?, HandledBy = ? WHERE MailID = ?",
+
       [newStatus, empId, mailId]
+
     );
+
     await pool.query(
+
       "INSERT INTO TrackingEvent (MailID, Timestamp, EventType, Location, Remarks, HandledBy) VALUES (?, NOW(), ?, 'Post Office', 'Updated by employee', ?)",
+
       [mailId, newStatus, empId]
+
     );
+
+
 
     /*
+
     // Uncomment this when your notification service is ready
+
     await notifyPackageEvent({
+
       mailId,
+
       eventType: newStatus,
+
       remarks: "Status updated by employee",
+
       status: newStatus,
+
     });
+
     */
 
+
+
     res.json({ success: true });
+
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
 
+
+
 // Create a new mail item (package) by employee
+
 router.post("/parcels/create", async (req, res) => {
+
   const {
+
     barcodeNo,
+
     type,
+
     mode,
+
     senderName = null,
+
     senderAddress = null,
+
     receiverEmail = null,
+
     expectedDeliveryDate = null,
+
     handledBy,
+
   } = req.body || {};
+
+
 
   console.log(`[POST /api/employee/parcels/create] Barcode: ${barcodeNo}`);
 
+
+
   if (!barcodeNo || !type || !mode || !handledBy) {
+
     return res.status(400).json({ error: "Missing required fields" });
+
   }
 
+
+
   try {
+
     let receiverId = null;
+
     if (receiverEmail) {
+
       const [people] = await pool.query(
+
         "SELECT PersonID FROM Person WHERE Email = ?",
+
         [receiverEmail]
+
       );
+
       receiverId = people[0]?.PersonID || null;
+
     }
+
+
 
     const [result] = await pool.query(
+
       `INSERT INTO MailItem (BarcodeNo, Type, Mode, SenderName, SenderAddress, ReceiverID, ExpectedDeliveryDate, CurrentStatus, HandledBy)
+
         VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
+
       [barcodeNo, type, mode, senderName, senderAddress, receiverId, expectedDeliveryDate, handledBy]
+
     );
+
+
 
     // initial tracking event
+
     await pool.query(
+
       "INSERT INTO TrackingEvent (MailID, Timestamp, EventType, Location, Remarks, HandledBy) VALUES (?, NOW(), 'Received', 'Post Office', 'Created by employee', ?)",
+
       [result.insertId, handledBy]
+
     );
+
+
 
     /*
+
     // Uncomment this when your notification service is ready
+
     await notifyPackageEvent({
+
       mailId: result.insertId,
+
       eventType: "Created",
+
       remarks: senderName
+
         ? `Sender: ${senderName}${senderAddress ? ` (${senderAddress})` : ""}`
+
         : "",
+
       status: "Pending",
+
     });
+
     */
 
+
+
     res.json({ success: true, mailId: result.insertId });
+
   } catch (err) {
+
     console.error(err);
+
     if (err.code === "ER_DUP_ENTRY") {
+
       return res.status(409).json({ error: "Barcode already exists" });
+
     }
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
 
+
+
 // Recent events handled by employee
+
 router.get("/parcels/recent-events/:id", async (req, res) => {
+
   console.log(`[GET /api/employee/parcels/recent-events/:id] ID: ${req.params.id}`);
+
   try {
+
     const [rows] = await pool.query(
-      `SELECT 
+
+      `SELECT
+
           te.EventID,
+
           te.MailID,
+
           te.Timestamp,
+
           te.EventType,
+
           te.Location,
+
           te.Remarks,
+
           m.BarcodeNo
+
         FROM TrackingEvent te
+
         INNER JOIN MailItem m ON te.MailID = m.MailID
+
         WHERE te.HandledBy = ? OR m.HandledBy = ?
+
         ORDER BY te.Timestamp DESC
+
         LIMIT 25`,
+
       [req.params.id, req.params.id]
+
     );
+
     res.json(rows);
+
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
+
+
 
 export default router;

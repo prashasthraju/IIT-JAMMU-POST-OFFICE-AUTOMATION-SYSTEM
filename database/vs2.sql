@@ -271,8 +271,8 @@ SELECT * FROM Building;
 SELECT * FROM Department;
 
 SELECT * FROM Employee;
-SELECT * FROM Person;
 use IitJammu1;
+SELECT * FROM Person;
 SELECT * FROM MailItem;
 use IitJammu1;
 SELECT * FROM TrackingEvent;
